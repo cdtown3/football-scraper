@@ -8,7 +8,7 @@ async function main() {
     const teams = await extractTeamsAndLogos(html);
   
     for (let team of teams) {
-      await downloadSVG(team.logoUrl, team.teamName.replace(/ /g, '_'));
+      await downloadImage(team.logoUrl, team.teamName.replace(/ /g, '_'), 'Premier_League');
     }
 }
 
@@ -38,15 +38,23 @@ function extractTeamsAndLogos(html) {
     return teams;
 }
 
-async function downloadImage(url, filename) {
+async function downloadImage(url, teamName, leagueName) {
   try {
+    // Determine the file extension
+    const extension = url.split('.').pop().split(/\#|\?/)[0];
+    const baseDir = path.resolve(__dirname, 'Leagues', leagueName, teamName);
+
+    // Ensure the directory exists
+    ensureDirSync(baseDir);
+
+    const filePath = path.join(baseDir, `${teamName}.${extension}`);
     const response = await axios({
       url,
       method: 'GET',
       responseType: 'stream'
     });
 
-    const writer = fs.createWriteStream(path.resolve(__dirname, 'logos', `${filename}.svg`));
+    const writer = fs.createWriteStream(filePath);
 
     response.data.pipe(writer);
 
@@ -55,10 +63,15 @@ async function downloadImage(url, filename) {
       writer.on('error', reject);
     });
   } catch (error) {
-    console.error('Error downloading the SVG: ', error);
+    console.error('Error downloading the image: ', error);
   }
 }
 
+function ensureDirSync(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+    }
+}
 
 
 main();
